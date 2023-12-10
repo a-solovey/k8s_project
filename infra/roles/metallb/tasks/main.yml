@@ -1,0 +1,22 @@
+- block:
+    - name: Deploy metallb
+      kubernetes.core.k8s:
+        state: present
+        template: 
+          - path: "{{ role_path }}/templates/metallb-native-{{ metallb_version }}.yaml.j2"
+      delay: 5
+      retries: 3
+
+    - name: Sleep
+      ansible.builtin.pause:
+        seconds: 90
+
+    - name: Deploy metallb IP pool
+      kubernetes.core.k8s:
+        state: present
+        template:
+          - path: "{{ role_path }}/templates/ip-pool.yaml.j2"
+      delay: 5
+      retries: 3
+
+  delegate_to: localhost

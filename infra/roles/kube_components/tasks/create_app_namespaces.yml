@@ -1,0 +1,12 @@
+- name: Create namespace for business apps
+  kubernetes.core.k8s:
+    apply: true
+    state: present
+    definition:
+      api_version: v1
+      kind: Namespace
+      metadata:
+        name: "{{ item }}"
+        labels:
+          istio-injection: enabled
+  loop: "{{ app_namespaces }}"

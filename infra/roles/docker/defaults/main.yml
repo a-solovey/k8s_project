@@ -1,0 +1,6 @@
+# docker_registry: nexus.svrw.oao.rzd
+docker_registry: none
+docker_registry_user: none
+docker_registry_pass: none
+docker_configuration_dir: "/etc/docker"
+docker_data_root: "/data/docker"

@@ -1,0 +1,29 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta3 
+kind: ClusterConfiguration
+imageRepository: {{ docker_registry }}
+dns:
+  imageRepository: {{ docker_registry }}/coredns
+networking:
+  podSubnet: {{ kubernetes_pod_subnet }}
+controlPlaneEndpoint: {{ keepalived_vip }}:{{ kubernetes_api_port }}
+kubernetesVersion: {{ kubernetes_version }}
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: {{ keepalived_vip }}:{{ kubernetes_api_port }}
+    token: "{{ kubeadm_token }}"
+    unsafeSkipCAVerification: true
+controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: {{ kube_apiserver_address }}
+    bindPort: {{ kubernetes_api_port }}
+  certificateKey: "{{ certificate_key }}"
+nodeRegistration:
+  name: {{ kube_override_hostname|default(ansible_fqdn) }}
+  criSocket: {{ cri_socket }}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master

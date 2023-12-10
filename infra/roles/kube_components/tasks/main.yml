@@ -1,0 +1,63 @@
+- name: Install kubernetes components
+  ansible.builtin.yum:
+    name:
+      - tc
+      - ipvsadm
+      - ebtables
+      - kubernetes-{{ kubernetes_version }}
+      - kubernetes-kubeadm-{{ kubernetes_version }}
+      - python3-libselinux
+      - python3-cryptography
+      - sshpass
+      - cri-dockerd
+    state: present
+
+- name: Configure CRI systemd \#1
+  ansible.builtin.copy:
+    src: cri-docker.socket
+    dest: /etc/systemd/system/cri-docker.socket
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure CRI systemd \#2
+  ansible.builtin.template:
+    src: cri-docker.service.j2
+    dest: /etc/systemd/system/cri-docker.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd
+  command: systemctl daemon-reload
+
+- name: Configure CRI systemd \#3
+  ansible.builtin.systemd:
+    state: started
+    name: cri-docker.socket
+    enabled: true
+
+- name: Configure CRI systemd \#4
+  ansible.builtin.systemd:
+    state: started
+    name: cri-docker.service
+    enabled: true
+
+- name: Configure CRI kubelet env
+  ansible.builtin.template:
+    src: kubeadm-flags.env.j2
+    dest: /var/lib/kubelet/kubeadm-flags.env
+    owner: root
+    group: root
+    mode: '0655'
+
+- name: Restart kubelet
+  ansible.builtin.systemd:
+    state: restarted
+    name: kubelet
+
+- name: Stop firewalld
+  ansible.builtin.service:
+    name: firewalld
+    enabled: true
+    state: stopped

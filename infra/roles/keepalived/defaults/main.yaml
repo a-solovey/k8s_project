@@ -1,0 +1,5 @@
+keepalived_group_name: ""
+keepalived_auth_pass: ""
+keepalived_scripts:
+keepalived_check_script: ""
+keepalived_check_script_dest: "/etc/keepalived/check_script.sh"

@@ -1,0 +1,19 @@
+---
+- name: Parse join command
+  ansible.builtin.set_fact:
+    kubeadm_token: "{{ hostvars[groups['k8s-masters'][0]]['temp_token'].stdout }}"
+    certificate_key: "{{ hostvars[groups['k8s-masters'][0]]['kubeadm_upload_cert'].stdout_lines[-1] | trim }}"
+
+- name: Create kubeadm config for additional master
+  ansible.builtin.template:
+    src: kubeadm-config-master-additional.yml.j2
+    dest: "{{ k8s_config_path }}/kubeadm-config-master-additional.yml"
+    mode: 0655
+    owner: root
+    group: root
+
+- name: Join additional master
+  ansible.builtin.shell: "kubeadm join --config {{ k8s_config_path }}/kubeadm-config-master-additional.yml"
+  register: k8s_init_result
+  when:
+    - not kubeadm_already_run.stat.exists

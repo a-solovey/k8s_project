@@ -1,0 +1,47 @@
+docker_registry: registry.k8s.io
+kubernetes_version: 1.24.12
+kubernetes_api_port: 6443
+kubernetes_pod_subnet: 192.168.0.0/16
+kube_apiserver_address: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+k8s_config_path: /etc/kubernetes
+cri_socket: unix:///var/run/cri-dockerd.sock
+app_namespaces: []
+firewall_ports:
+  - port: 25
+    protocol: tcp
+  - port: 53
+    protocol: udp
+  - port: 80
+    protocol: tcp
+  - port: 179
+    protocol: tcp
+  - port: 443
+    protocol: tcp
+  - port: 2379-2380
+    protocol: tcp
+  - port: 4789
+    protocol: udp
+  - port: 5446
+    protocol: tcp
+  - port: 6443
+    protocol: tcp
+  - port: 7472
+    protocol: tcp
+  - port: 7946
+    protocol: tcp
+  - port: 7946
+    protocol: udp
+  - port: 8080
+    protocol: tcp
+  - port: 10250
+    protocol: tcp
+  - port: 10250
+    protocol: udp
+  - port: 10254
+    protocol: tcp
+  - port: 10257
+    protocol: tcp
+  - port: 10259
+    protocol: tcp
+  - port: 15007-15030
+    protocol: tcp

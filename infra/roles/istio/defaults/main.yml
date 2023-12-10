@@ -1,0 +1,4 @@
+# istio_chart_version: 1.15.3
+istio_chart_version: 1.16.1
+docker_registry: docker.io
+custom_ingress_ports: []

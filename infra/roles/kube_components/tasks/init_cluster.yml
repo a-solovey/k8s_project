@@ -1,0 +1,42 @@
+---
+
+- name: Create kubeadm config for first master
+  ansible.builtin.template:
+    src: kubeadm-config-master.yml.j2
+    dest: "{{ k8s_config_path }}/kubeadm-config-master.yml"
+    mode: 0655
+    owner: root
+    group: root
+
+- name: Init control plane on first master
+  ansible.builtin.shell: "kubeadm init --config {{ k8s_config_path }}/kubeadm-config-master.yml --upload-certs"
+  register: kubeadm_init
+  # Retry is because upload config sometimes fails
+  retries: 3
+  until: kubeadm_init is succeeded or "field is immutable" in kubeadm_init.stderr
+  when:
+    - not kubeadm_already_run.stat.exists
+
+- name: Upload certificates so they are fresh and not expired
+  ansible.builtin.shell: >-
+    kubeadm init phase
+    --config {{ k8s_config_path }}/kubeadm-config-master.yml
+    upload-certs
+    --upload-certs
+  register: kubeadm_upload_cert
+  # when:
+  #   - kubeadm_already_run.stat.exists
+
+- name: Create kubeadm token for joining nodes with 24h expiration (default)
+  command: "kubeadm --kubeconfig {{ k8s_config_path }}/admin.conf token create"
+  changed_when: false
+  register: temp_token
+  retries: 5
+  delay: 5
+  until: temp_token is succeeded
+
+- name: Fetch kubeconf
+  ansible.builtin.fetch:
+    src: "{{ k8s_config_path }}/admin.conf"
+    dest: /tmp/admin.conf
+    flat: true

@@ -1,0 +1,143 @@
+# - name: Change firewall backend
+#   ansible.builtin.lineinfile:
+#     regexp: '^FirewallBackend=nftables'
+#     line: 'FirewallBackend=iptables'
+#     path: /etc/firewalld/firewalld.conf
+
+- ansible.builtin.service_facts:
+
+- name: Configuring firewalld
+  block:
+
+    - name: Start firewalld
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: "Create zones"
+      ansible.posix.firewalld:
+        zone: "{{ item }}"
+        permanent: true
+        state: present
+      loop:
+        - kubernetes
+        - kubernetes_pods
+      # notify: restart_firewalld
+
+    - name: Reload firewalld rules
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: reloaded
+
+    - name: "Set target for zone"
+      ansible.posix.firewalld:
+        zone: "{{ item.name }}"
+        permanent: true
+        state: enabled
+        target: "{{ item.target }}"
+      loop:
+        # - {name: "kubernetes", target: "%%REJECT%%"}
+        - {name: "kubernetes", target: "DROP"}
+        - {name: "kubernetes_pods", target: "ACCEPT"}
+      # notify: restart_firewalld
+
+    - name: Add source subnet to kubernetes pods zone
+      ansible.posix.firewalld:
+        immediate: true
+        zone: kubernetes_pods
+        permanent: true
+        source: "{{  kubernetes_pod_subnet }}"
+        state: enabled
+
+    - name: "Enable masquerade for zone"
+      ansible.posix.firewalld:
+        immediate: true
+        zone: "{{ zone_name }}"
+        permanent: true
+        state: enabled
+        masquerade: true
+      loop:
+        - kubernetes
+        - public
+      loop_control:
+        loop_var: zone_name
+
+    - name: Add keepalived rule for public zone
+      ansible.posix.firewalld:
+        immediate: true
+        zone: public
+        permanent: true
+        state: enabled
+        rich_rule: rule protocol value="{{ item }}" accept
+      loop:
+        - vrrp
+        - ah
+
+    - name: Add k8s interfaces to kubernetes firewalld zone
+      ansible.posix.firewalld:
+        immediate: true
+        interface: "{{ loop_interface }}"
+        zone: kubernetes
+        permanent: true
+        state: enabled
+      loop:
+        - kube-ipvs0
+        - vxlan.calico
+      loop_control:
+        loop_var: loop_interface
+
+    - name: Generate firewall_ports for kubernetes zone
+      ansible.builtin.set_fact:
+        firewall_ports_k8s_zone: "{{ firewall_ports_k8s_zone | default([]) + [item.port ~ '/' ~ (item.protocol | lower) ] }}"
+      loop: "{{ firewall_ports + (custom_ingress_ports| default([])) }}"
+
+    - name: Open ports for k8s
+      ansible.posix.firewalld:
+        immediate: true
+        permanent: true
+        port: "{{ loop_port }}"
+        state: enabled
+        zone: kubernetes
+      loop: "{{ firewall_ports_k8s_zone }}"
+      loop_control:
+        loop_var: loop_port
+
+    - name: Open ports for k8s (public)
+      ansible.posix.firewalld:
+        immediate: true
+        permanent: true
+        port: "{{ loop_port }}"
+        state: enabled
+        zone: public
+      loop: "{{ firewall_ports_k8s_zone }}"
+      loop_control:
+        loop_var: loop_port
+
+    - name: Open ports for metallb (trusted)
+      ansible.posix.firewalld:
+        immediate: true
+        permanent: true
+        port: "{{ loop_port }}"
+        state: enabled
+        zone: trusted
+      loop:
+        - 7472/tcp
+        - 7472/udp
+        - 7946/tcp
+        - 7946/udp
+        - 9472/tcp
+        - 9472/udp
+        - 9946/tcp
+        - 9946/udp
+      loop_control:
+        loop_var: loop_port
+
+    - name: Reload firewalld rules
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: reloaded
+
+  when: ansible_facts.services['firewalld.service'].status == 'enabled'

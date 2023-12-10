@@ -1,0 +1,36 @@
+- name: create /opt/ha_config directory
+  ansible.builtin.file:
+    path: /opt/hap_config  
+    state: directory 
+    mode: 0644
+    owner: root
+    group: root
+
+- name: generate and copy HAproxy config
+  ansible.builtin.template: 
+    src: haproxyConfig.j2 
+    dest: /opt/hap_config/haproxy.cfg
+  register: hapConfig
+
+- name: "Pulling image {{ haproxy_container_image }}"
+  ansible.builtin.shell: docker pull "{{ haproxy_container_image }}"
+
+- name: run haproxy in a container
+  docker_container:
+   name: haproxy
+   image: "{{ haproxy_container_image }}"
+   restart_policy: always
+   state: started
+   privileged: yes
+   network_mode: host
+   user: root
+   exposed_ports:
+    - "{{ ha_proxy_port }}"
+    - "{{ etcd_proxy_port }}"
+   volumes:
+    - /opt/hap_config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+   command: -f /usr/local/etc/haproxy/haproxy.cfg
+
+- name: restart haproxy container if it is started
+  ansible.builtin.shell: docker restart haproxy
+  when: hapConfig.changed

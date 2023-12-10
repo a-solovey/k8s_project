@@ -1,0 +1,8 @@
+docker_registry: docker.io
+# haproxy_container_image: "{{ docker_registry }}/haproxy:2.8.0"
+haproxy_container_image: "{{ docker_registry }}/haproxy:1.5"
+haproxy_stats_port: 9010
+ha_proxy_port: 5446
+# haproxy port for etcd
+etcd_proxy_port: 3379
+proxy_port: 6443

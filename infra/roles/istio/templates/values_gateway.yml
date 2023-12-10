@@ -1,0 +1,69 @@
+# Enable HTTP1.0
+env:
+  ISTIO_META_HTTP10: '"1"'
+global:
+  hub: "{{ docker_registry }}/istio"
+service:
+  ports:
+  - name: status-port
+    protocol: TCP
+    port: 15021
+    targetPort: 15021
+  - name: http2
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  - name: http-8080
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  - name: http-8081
+    protocol: TCP
+    port: 8081
+    targetPort: 8081
+  - name: http-8082
+    protocol: TCP
+    port: 8082
+    targetPort: 8082
+  - name: http-8083
+    protocol: TCP
+    port: 8083
+    targetPort: 8083
+  - name: http-8084
+    protocol: TCP
+    port: 8084
+    targetPort: 8084
+  - name: http-8085
+    protocol: TCP
+    port: 8085
+    targetPort: 8085
+  - name: http-8086
+    protocol: TCP
+    port: 8086
+    targetPort: 8086
+  - name: http-8087
+    protocol: TCP
+    port: 8087
+    targetPort: 8087
+  - name: http-8088
+    protocol: TCP
+    port: 8088
+    targetPort: 8088
+  - name: http-8089
+    protocol: TCP
+    port: 8089
+    targetPort: 8089
+  - name: smtp
+    protocol: TCP
+    port: 25
+    targetPort: 25
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
+{% for port in custom_ingress_ports %}
+  - name: {{ port.name }}
+    protocol: {{ port.protocol }}
+    port: {{ port.port }}
+    targetPort: {{ port.target_port }}
+{% endfor %}

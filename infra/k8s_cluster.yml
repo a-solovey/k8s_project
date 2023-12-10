@@ -1,0 +1,76 @@
+---
+# playbook.yml
+
+- name: Prepare k8s nodes
+  hosts: k8s
+  become: true
+  environment:
+    KUBECONFIG: /tmp/admin.conf
+  tasks:
+    - name: Prepare k8s servers
+      block:
+        - name: Deploy docker
+          ansible.builtin.include_role:
+            name: docker
+
+        - name: Prepare environment
+          ansible.builtin.include_role:
+            name: kube_components
+            tasks_from: "{{ item }}"
+          loop:
+            - main.yml
+            - preparation.yml
+
+    - name: Create controlplane
+      block:
+        - name: Init first master
+          ansible.builtin.include_role:
+            name: kube_components
+            tasks_from: init_cluster.yml
+          when: inventory_hostname == groups['k8s-masters'][0]
+
+        - name: Create app namespaces
+          ansible.builtin.include_role:
+            name: kube_components
+            tasks_from: create_app_namespaces.yml
+            apply:
+              delegate_to: localhost
+          when: inventory_hostname == groups['k8s-masters'][0]
+
+
+        - name: Deploy calico
+          ansible.builtin.include_role:
+            name: calico
+            tasks_from: main.yml
+          when: inventory_hostname == groups['k8s-masters'][0]
+
+        - name: Add additional master
+          ansible.builtin.include_role:
+            name: kube_components
+            tasks_from: add_master.yml
+          when: inventory_hostname != groups['k8s-masters'][0] and inventory_hostname in groups['k8s-masters']
+
+    - name: Add workers
+      ansible.builtin.include_role:
+        name: kube_components
+        tasks_from: add_worker.yml
+      when: inventory_hostname in groups['k8s-workers']
+
+    - name: Deploy ingress
+      when: inventory_hostname == groups['k8s-masters'][0]
+      block:
+        - name: Deploy metallb
+          ansible.builtin.include_role:
+            name: metallb
+            tasks_from: main.yml
+
+        - name: Deploy istio
+          ansible.builtin.include_role:
+            name: istio
+            tasks_from: main.yml
+
+  post_tasks:
+    - name: Apply firewall rules
+      ansible.builtin.include_role:
+        name: kube_components
+        tasks_from: firewall.yml

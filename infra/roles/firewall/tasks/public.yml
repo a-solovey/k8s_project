@@ -1,0 +1,33 @@
+- ansible.builtin.service_facts:
+
+- name: Configuring firewalld
+  block:
+    - name: Restart firewalld
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: "Open ports(tcp) for {{ component_name }} in public zone"
+      ansible.posix.firewalld:
+        immediate: true
+        permanent: true
+        port: "{{ loop_port }}/tcp"
+        state: enabled
+        zone: public
+      loop: "{{ ports_list }}"
+      loop_control:
+        loop_var: loop_port
+
+    - name: "Open ports(udp) for {{ component_name }} in public zone"
+      ansible.posix.firewalld:
+        immediate: true
+        permanent: true
+        port: "{{ loop_port }}/udp"
+        state: enabled
+        zone: public
+      loop: "{{ ports_list }}"
+      loop_control:
+        loop_var: loop_port
+      when: open_udp
+  when: ansible_facts.services['firewalld.service'].status == 'enabled'

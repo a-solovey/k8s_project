@@ -1,0 +1,99 @@
+- block:
+  - name: Install docker (RedOS)
+    ansible.builtin.package:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - docker-compose-2.11.2
+        - python3-requests
+      state: present
+    when: hostvars[inventory_hostname]['ansible_pkg_mgr'] in ['dnf', 'yum']
+
+  - name: Install docker (Ubuntu)
+    ansible.builtin.package:
+      name:
+        - docker.io
+        - docker-compose
+        - python3-requests
+      state: present
+    when: hostvars[inventory_hostname]['ansible_pkg_mgr'] == 'apt'
+
+  - name: Copy docker daemon configuration
+    ansible.builtin.template:
+      src: daemon.json
+      dest: "{{ docker_configuration_dir }}/daemon.json"
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Check docker data root dir
+    ansible.builtin.file:
+      path: "{{ docker_data_root }}"
+      mode: 0755
+      owner: root
+      group: root
+      state: directory
+
+  - name: Enable docker service
+    ansible.builtin.systemd:
+      name: docker
+      enabled: true
+      daemon_reload: true
+      state: restarted
+
+  - name: "Check available registry {{ docker_registry }}"
+    ansible.builtin.uri:
+      url: https://{{ docker_registry }}
+      return_content: true
+      validate_certs: false
+      status_code:
+        - -1
+        - 200
+        - 400
+    register: registry_check
+    when: docker_registry != "none"
+
+  - name: Create docker certs dir
+    ansible.builtin.file:
+      path: "{{ docker_configuration_dir }}/certs.d/{{ docker_registry }}/"
+      mode: 0755
+      owner: root
+      group: root
+      state: directory
+
+  - name: Get registry cert
+    community.crypto.get_certificate:
+      host: "{{ docker_registry.split(':')[0] }}"
+      port: "{{ docker_registry.split(':')[1]| default(443) }}"
+    register: registry_cert_result
+    # when: registry_check.status in [200, 400]
+    when: docker_registry != "none"
+
+  - name: Save registry cert to docker configuration
+    ansible.builtin.copy:
+      content: "{{ registry_cert_result.cert }}"
+      dest: "{{ docker_configuration_dir }}/certs.d/{{ docker_registry }}/docker_registry.crt"
+      mode: 0655
+      owner: root
+      group: root
+    # when: registry_check.status in [200, 400]
+    when: docker_registry != "none"
+
+  - name: "Log into docker registry {{ docker_registry }}"
+    community.docker.docker_login:
+      registry: "{{ docker_registry }}"
+      username: "{{ docker_registry_user }}"
+      password: "{{ docker_registry_pass }}"
+      tls: true
+    when: docker_registry_user != "none"
+
+  - name: "Setup cron task: Clean unused docker images"
+    ansible.builtin.cron:
+      name: "Clean unsed docker images"
+      minute: "0"
+      hour: "1"
+      job: "/usr/bin/docker image prune -a -f"
+
+  tags: 
+    - docker_install
+    - always

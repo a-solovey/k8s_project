@@ -1,0 +1,66 @@
+---
+- name: Block of istio deployment
+  block:
+    - name: Create the istio-system namespace
+      kubernetes.core.k8s:
+        state: present
+        name: istio-system
+        api_version: v1
+        kind: Namespace
+
+    - name: Create the istio-ingress namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          api_version: v1
+          kind: Namespace
+          metadata:
+            name: istio-ingress
+            labels:
+              istio-injection: enabled
+
+    - name: Deploy istio-base
+      kubernetes.core.helm:
+        name: istio-base
+        chart_ref: "{{ role_path }}/files/base-{{ istio_chart_version }}.tgz"
+        release_namespace: istio-system
+        wait: true
+        values:
+          global:
+            hub: "{{ docker_registry }}/istio"
+
+    - name: Deploy istiod
+      kubernetes.core.helm:
+        name: istiod
+        chart_ref: "{{ role_path }}/files/istiod-{{ istio_chart_version }}.tgz"
+        release_namespace: istio-system
+        wait: true
+        values:
+          global:
+            hub: "{{ docker_registry }}/istio"
+          pilot:
+            env:
+              # Enable HTTP1.0
+              PILOT_HTTP10: "1"
+
+    - name: Deploy istio-gateway
+      kubernetes.core.helm:
+        name: ingressgateway
+        chart_ref: "{{ role_path }}/files/gateway-{{ istio_chart_version }}.tgz"
+        release_namespace: istio-ingress
+        wait: true
+        timeout: 10m
+        values: "{{ lookup('template', 'values_gateway.yml') | from_yaml }}"
+
+    - name: Set externalTrafficPolicy
+      kubernetes.core.k8s_json_patch:
+        kind: Service
+        name: ingressgateway
+        namespace: istio-ingress
+        patch:
+          - op: replace
+            path: /spec/externalTrafficPolicy
+            value: Local
+
+  run_once: true
+  delegate_to: localhost

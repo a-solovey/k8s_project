@@ -1,0 +1,82 @@
+#- name: Enable forwarding in iptables
+#  ansible.builtin.iptables:
+#    chain: FORWARD
+#    jump: ACCEPT
+
+- name: Enable kernel modules for containerd
+  ansible.builtin.copy:
+    src: containerd.conf
+    dest: /etc/modules-load.d/containerd.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Load kernel modules for containerd
+  community.general.modprobe:
+    name: "{{ param }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+  loop_control:
+    loop_var: param
+
+- name: Configure sysctl
+  ansible.builtin.copy:
+    src: 99-kubernetes-cri.conf
+    dest: /etc/sysctl.d/99-kubernetes-cri.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Apply sysctl
+  ansible.builtin.shell: sysctl --system
+
+- name: Create kubernetes configuration directory
+  ansible.builtin.file:
+    name: "{{ k8s_config_path }}"
+    mode: 0755
+    owner: root
+    group: root
+    state: directory
+
+- name: Create kubeadm images config
+  ansible.builtin.template:
+    src: kubeadm-images.j2
+    dest: "{{ k8s_config_path }}/kubeadm-images.yml"
+    mode: 0655
+    owner: root
+    group: root
+
+- name: Pull kubernetes images
+  ansible.builtin.command: "kubeadm config images pull --config {{ k8s_config_path }}/kubeadm-images.yml"
+
+- name: Disable swap (1/2)
+  ansible.builtin.command: swapoff -a
+
+- name: Disable SWAP in fstab(2/2)
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+
+- name: Disable default CNI
+  ansible.builtin.replace:
+    path: /etc/systemd/system/kubelet.service.d/kubeadm.conf
+    regexp: '^(Environment.+KUBELET_NETWORK_ARGS.*)$'
+    replace: '# \1'
+
+- name: Enable kubelet service
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+    daemon_reload: true
+    state: started
+
+- name: kubeadm | Check if kubeadm has already run
+  stat:
+    path: "/var/lib/kubelet/config.yaml"
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+  register: kubeadm_already_run

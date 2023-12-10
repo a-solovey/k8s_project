@@ -1,0 +1,20 @@
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: {{ cri_socket }}
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+imageRepository: {{ docker_registry }}
+dns:
+  imageRepository: {{ docker_registry }}/coredns
+networking:
+  podSubnet: {{ kubernetes_pod_subnet }}
+controlPlaneEndpoint: {{ keepalived_vip }}:{{ kubernetes_api_port }}
+kubernetesVersion: {{ kubernetes_version }}
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1 
+kind: KubeProxyConfiguration
+mode: ipvs
+ipvs:
+  strictARP: true

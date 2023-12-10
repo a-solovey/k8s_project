@@ -1,0 +1,18 @@
+---
+# playbook.yml
+
+- name: Reset cluster
+  hosts: k8s
+  become: true
+  gather_facts: false
+  tasks:
+
+    - name: Reset k8s cluster
+      ansible.builtin.shell: "{{ item }}"
+      loop:
+        - "echo y | kubeadm reset --cri-socket=unix:///var/run/cri-dockerd.sock"
+        - "ipvsadm --clear"
+
+    - name: Reboot nodes
+      ansible.builtin.reboot:
+        msg: 'Reboot'

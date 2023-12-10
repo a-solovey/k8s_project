@@ -1,0 +1,16 @@
+---
+# playbook.yml
+
+- name: Configure Load balancer for HA k8s cluster
+  hosts: k8s-masters
+  become: true
+  vars:
+    keepalived_auth_pass: "choo9ohP"
+    keepalived_check_script: "check_k8s_apiserver.sh"
+    keepalived_group_name: "k8s-masters"
+    keepalived_target_service: "k8s"
+
+  roles:
+    - docker
+    - keepalived
+    - haproxy

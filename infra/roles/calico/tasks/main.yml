@@ -1,0 +1,59 @@
+---
+- name: Block of calico deployment
+  block:
+    - name: Create the tigera-operator namespace
+      kubernetes.core.k8s:
+        state: present
+        name: tigera-operator
+        api_version: v1
+        kind: Namespace
+
+    - name: Deploy calico operator
+      kubernetes.core.k8s:
+        state: present
+        template: 
+          - path: "{{ role_path }}/templates/tigera-operator-{{ calico_version }}.yaml.j2"
+      register: calico_operator_result
+      until: "calico_operator_result is not failed"
+      delay: 5
+      retries: 3
+
+    - name: Sleep
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: Deploy calico custom resources
+      kubernetes.core.k8s:
+        state: present
+        template: 
+          - path: "{{ role_path }}/templates/custom-resources-{{ calico_version }}.yaml.j2"
+  delegate_to: localhost
+  run_once: true
+
+- name: Disable cni in kubelet
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/system/kubelet.service.d/kubeadm.conf
+    regexp: '^(Environment="KUBELET_NETWORK_ARGS.+)'
+    line: '# \1'
+    backrefs: true
+
+- name: Find k8s manifests
+  ansible.builtin.find:
+    paths: /etc/kubernetes/manifests/
+    patterns: '*.yml,*.yaml'
+  register: k8s_manifests
+
+- name: Fix manifests
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    # regexp: '^(.*)Xms(\d+)m(.*)$'
+    regexp: '\s+- --port=0'
+    state: absent
+    backrefs: true
+  loop: "{{ k8s_manifests['files'] }}"
+
+- name: Restart kubelet service
+  ansible.builtin.systemd:
+    name: kubelet
+    daemon_reload: true
+    state: restarted

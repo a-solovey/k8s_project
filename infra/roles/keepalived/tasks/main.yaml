@@ -1,0 +1,68 @@
+- ansible.builtin.service_facts:
+
+- name: Configuring firewalld
+  block:
+
+  - name: Add keepalived rule for public zone
+    ansible.posix.firewalld:
+      immediate: true
+      zone: public
+      permanent: true
+      state: enabled
+      rich_rule: rule protocol value="{{ item }}" accept
+    loop:
+      - vrrp
+      - ah
+
+  - name: Reload firewalld rules
+    ansible.builtin.systemd:
+      name: firewalld
+      state: reloaded
+  when: ansible_facts.services['firewalld.service'].status == 'enabled'
+
+- name: "Keepalived configuration"
+  block:
+    - name: Install keepalived
+      become: true
+      ansible.builtin.yum:
+        name: keepalived
+
+    # - name: Install ansible deps
+    #   become: true
+    #   ansible.builtin.yum:
+    #     name: "{{ item }}"
+    #   loop:
+    #     - policycoreutils-python
+    #     - python3-libselinux
+
+    - name: Deploy keepalived script
+      become: true
+      ansible.builtin.template:
+        src: "{{ keepalived_check_script }}"
+        dest: "{{ keepalived_check_script_dest }}"
+        mode: 0755
+        owner: root
+
+    # - name: Allow keepalived to run checking script
+    #   community.general.sefcontext:
+    #     target: "{{ keepalived_check_script_dest }}"
+    #     setype: keepalived_unconfined_script_exec_t
+    #     state: present
+
+    # - name: Apply new SELinux file context to filesystem
+    #   ansible.builtin.command: "restorecon -Rv {{ keepalived_check_script_dest }}"
+
+    - name: Deploy keepalived config
+      become: true
+      ansible.builtin.template:
+        src: keepalived.conf
+        dest: /etc/keepalived/keepalived.conf
+
+    - name: Restart keepalived
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: true
+        name: keepalived
+        enabled: true
+  tags:
+    - keepalived_install
