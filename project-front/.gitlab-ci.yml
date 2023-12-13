@@ -1,0 +1,53 @@
+stages:
+- build
+- deploy
+
+
+default:
+  before_script:
+  - CI_REGISTRY_IMAGE="$CI_REGISTRY_IMAGE"
+  - CI_REGISTRY="$CI_REGISTRY"
+
+build:
+  tags:
+  - shell
+  rules:
+  - if: $CI_COMMIT_TAG =~ /^\S?\d+\.\d+\.\d+$/
+  stage: build
+  script:
+  - docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+  - docker login $NIIAS_NEXUS -u $NEXUS_USER -p $NEXUS_PASSWORD
+  - docker build --force-rm --no-cache --build-arg TAG_BUILD_NUMBER=${CI_COMMIT_TAG} --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" --tag "$CI_REGISTRY_IMAGE:latest"  --tag "$NIIAS_NEXUS/k8s_project/$CI_PROJECT_NAME:$CI_COMMIT_TAG" --tag "$NIIAS_NEXUS/k8s_project/$CI_PROJECT_NAME:latest"  -f ./.image/Dockerfile .
+  - docker save -o "$CI_PROJECT_NAME_$CI_COMMIT_TAG.tar" "$CI_REGISTRY_IMAGE:latest"
+  - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+  - docker push "$CI_REGISTRY_IMAGE:latest"
+  - docker push "$NIIAS_NEXUS/k8s_project/$CI_PROJECT_NAME:$CI_COMMIT_TAG"
+  - docker push "$NIIAS_NEXUS/k8s_project/$CI_PROJECT_NAME:latest"
+  - docker rmi -f "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" "$CI_REGISTRY_IMAGE:latest" "$NIIAS_NEXUS/k8s_project/$CI_PROJECT_NAME:$CI_COMMIT_TAG" "$NIIAS_NEXUS/k8s_project/$CI_PROJECT_NAME:latest"
+  retry: 2
+  artifacts:
+    expire_in: 30 mins
+    paths:
+    - "$CI_PROJECT_NAME_$CI_COMMIT_TAG.tar"
+    when: on_success
+
+
+deploy:
+  tags:
+  - docker
+  image:
+    name: nexus.k8s.rzd/devops/docker-deploy-tools:0.1.10
+    entrypoint: [""]
+    pull_policy: always
+  stage: deploy
+  rules:
+  - if: $CI_COMMIT_TAG =~ /^\S?\d+\.\d+\.\d+$/
+  script:
+  - kubectl config get-contexts
+  - kubectl config use-context k8s_project/config-server:k8s-agent
+  - kubectl get pods -n dev
+  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@dev.k8s_project.ru/k8s_helm.git
+  - cd k8s_helm
+  - helm version
+  - chmod +x deploy.sh
+  - ./deploy.sh dev ${CI_PROJECT_NAME} ${CI_COMMIT_TAG}
