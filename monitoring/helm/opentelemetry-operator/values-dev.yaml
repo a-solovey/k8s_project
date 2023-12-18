@@ -1,0 +1,5 @@
+manager:
+  image:
+    registry: nexus.k8s.rzd
+  collectorImage:
+    registry: nexus.k8s.rzd

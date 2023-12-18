@@ -1,0 +1,10 @@
+image:
+  registry: nexus.k8s.rzd
+env:
+  namespace: dev
+  dataPrepper:
+    host: 192.168.2.10
+    port: 21892
+  vmagent:
+    host: 192.168.2.10
+    port: 8429

@@ -1,0 +1,832 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 4,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 50,
+      "panels": [],
+      "title": "Available Replicas",
+      "type": "row"
+    },
+    {
+      "aliasColors": {
+        "debug": "#1F78C1",
+        "error": "#BF1B00",
+        "info": "#508642",
+        "trace": "#6ED0E0",
+        "warn": "#EAB839"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAF93674D0B4E9963"
+      },
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "links": [],
+          "unit": "opm"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {
+        "leftLogBase": 1,
+        "rightLogBase": 1
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 0,
+        "y": 1
+      },
+      "height": "",
+      "hiddenSeries": false,
+      "id": 4,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": true,
+      "pluginVersion": "10.0.3",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "error",
+          "yaxis": 1
+        },
+        {
+          "alias": "warn",
+          "yaxis": 1
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "expr": "increase(logback_events{level=\"error\"}[1m])>0",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{ '{{' }}job{{ '}}' }}",
+          "metric": "",
+          "range": true,
+          "refId": "A",
+          "step": 1200
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Error Log Events (1m)",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "x-axis": true,
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "y-axis": true,
+      "y_formats": [
+        "short",
+        "short"
+      ],
+      "yaxes": [
+        {
+          "$$hashKey": "object:157",
+          "decimals": 0,
+          "format": "opm",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:158",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAF93674D0B4E9963"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 9,
+        "y": 5
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "expr": "sum(scheduled_meter_active_user_session)>=0",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Число активных сессий",
+      "type": "stat"
+    },
+    {% set ns = namespace(y_pos = 0, x_pos = 0) %}
+    {% for row in gvc_system_work_vars.rows %}
+        {% if row.has_row %}
+    {
+        "collapsed": false,
+        "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": {{ gvc_system_work_vars.start_y + ns.y_pos }}
+        },
+        "panels": [],
+        "title": "{{ row.row_title }}",
+        "type": "row"
+    },
+            {% set ns.y_pos = ns.y_pos + 1 %}
+        {% endif %}
+        {% set ns.x_pos = 0 %}
+        {% for panel in row.panels %}
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAF93674D0B4E9963"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": {{ gvc_system_work_vars.panel_height }},
+        "w": {{ gvc_system_work_vars.panel_width }},
+        "x": {{ row.padding + ns.x_pos }},
+        "y": {{ gvc_system_work_vars.start_y + ns.y_pos }}
+      },
+      "hideTimeOverride": true,
+      "interval": "5s",
+      "links": [],
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.0.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kube_deployment_status_replicas_available{namespace=\"{{ kubernetes_namespace }}\", deployment=\"{{ panel.deployment }}\"})",
+          "format": "heatmap",
+          "hide": false,
+          "instant": true,
+          "interval": "",
+          "legendFormat": "available",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kube_deployment_status_replicas{namespace=\"{{ kubernetes_namespace }}\", deployment=\"{{ panel.deployment }}\"})",
+          "format": "time_series",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "total",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "expr": "sum(kube_deployment_status_replicas{namespace=\"{{ kubernetes_namespace }}\", deployment=\"{{ panel.deployment }}\"})",
+          "format": "heatmap",
+          "hide": false,
+          "legendFormat": "total",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "{{ panel.title }}",
+      "transformations": [
+        {
+          "id": "configFromData",
+          "options": {
+            "applyTo": {
+              "id": "byName",
+              "options": "available"
+            },
+            "configRefId": "C",
+            "mappings": [
+              {
+                "fieldName": "total",
+                "handlerKey": "max"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+            {% set ns.x_pos = ns.x_pos + gvc_system_work_vars.panel_width %}
+        {% endfor %}
+        {% set ns.y_pos = ns.y_pos + gvc_system_work_vars.panel_height %}
+    {% endfor %}
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": {{ ns.y_pos + 24 }}
+      },
+      "id": 45,
+      "panels": [],
+      "title": "Log events",
+      "type": "row"
+    },
+    {
+      "aliasColors": {
+        "debug": "#1F78C1",
+        "error": "#BF1B00",
+        "info": "#508642",
+        "trace": "#6ED0E0",
+        "warn": "#EAB839"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAF93674D0B4E9963"
+      },
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "links": [],
+          "unit": "opm"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {
+        "leftLogBase": 1,
+        "rightLogBase": 1
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": {{ ns.y_pos + 25 }}
+      },
+      "height": "",
+      "hiddenSeries": false,
+      "id": 60,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": true,
+      "pluginVersion": "10.0.3",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "error",
+          "yaxis": 1
+        },
+        {
+          "alias": "warn",
+          "yaxis": 1
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "expr": "increase(logback_events{level=\"error\"}[1m])>0",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{ '{{' }}job{{ '}}' }}",
+          "metric": "",
+          "range": true,
+          "refId": "A",
+          "step": 1200
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Error Log Events (1m)",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "x-axis": true,
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "y-axis": true,
+      "y_formats": [
+        "short",
+        "short"
+      ],
+      "yaxes": [
+        {
+          "$$hashKey": "object:157",
+          "decimals": 0,
+          "format": "opm",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:158",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {
+        "debug": "#1F78C1",
+        "error": "#BF1B00",
+        "info": "#508642",
+        "trace": "#6ED0E0",
+        "warn": "#EAB839"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAF93674D0B4E9963"
+      },
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "links": [],
+          "unit": "opm"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {
+        "leftLogBase": 1,
+        "rightLogBase": 1
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": {{ ns.y_pos + 33 }}
+      },
+      "height": "",
+      "hiddenSeries": false,
+      "id": 5,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 10,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": true,
+      "pluginVersion": "10.0.3",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "error",
+          "yaxis": 1
+        },
+        {
+          "alias": "warn",
+          "yaxis": 1
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "expr": "increase(logback_events{level=\"warn\"}[1m])>0",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{ '{{' }}job{{ '}}' }}",
+          "metric": "",
+          "range": true,
+          "refId": "A",
+          "step": 1200
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Warn Log Events (1m)",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "x-axis": true,
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "y-axis": true,
+      "y_formats": [
+        "short",
+        "short"
+      ],
+      "yaxes": [
+        {
+          "$$hashKey": "object:157",
+          "decimals": 0,
+          "format": "opm",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:158",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {
+        "debug": "#1F78C1",
+        "error": "#BF1B00",
+        "info": "#508642",
+        "trace": "#6ED0E0",
+        "warn": "#EAB839"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAF93674D0B4E9963"
+      },
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "links": [],
+          "unit": "opm"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {
+        "leftLogBase": 1,
+        "rightLogBase": 1
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": {{ ns.y_pos + 41 }}
+      },
+      "height": "",
+      "hiddenSeries": false,
+      "id": 6,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": true,
+      "pluginVersion": "10.0.3",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "error",
+          "yaxis": 1
+        },
+        {
+          "alias": "warn",
+          "yaxis": 1
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAF93674D0B4E9963"
+          },
+          "editorMode": "code",
+          "expr": "increase(logback_events{level=\"info\"}[1m])>60",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "{{ '{{' }}job{{ '}}' }}",
+          "metric": "",
+          "range": true,
+          "refId": "A",
+          "step": 1200
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Info Log Events (1m) > 60",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "x-axis": true,
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "y-axis": true,
+      "y_formats": [
+        "short",
+        "short"
+      ],
+      "yaxes": [
+        {
+          "$$hashKey": "object:157",
+          "decimals": 0,
+          "format": "opm",
+          "logBase": 1,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:158",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Работоспособность системы",
+  "uid": "On7Y2f64g",
+  "version": 2,
+  "weekStart": ""
+}

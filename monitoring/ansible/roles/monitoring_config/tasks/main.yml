@@ -1,0 +1,293 @@
+- name: Cleaning VictoriaMetrics directories
+  block:
+    - name: Destroy VictoriaMetrics
+      community.docker.docker_compose:
+        state: absent
+        project_src: "{{ docker_compose_dir }}"
+        files:
+          - "docker-compose.yml"
+
+    - name: Clean persistent data directories
+      ansible.builtin.file:
+        state: absent
+        name: "{{ item }}"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0777
+      with_items:
+        - "{{ persistent_data_path }}/vmagentdata"
+        - "{{ persistent_data_path }}/vmdata"
+        - "{{ persistent_data_path }}/grafanadata"
+        - "{{ persistent_data_path }}/strgdata-1"
+        - "{{ persistent_data_path }}/strgdata-2"
+        - "{{ persistent_data_path }}/opensearch"
+        - "{{ docker_compose_dir }}/provisioning/datasources"
+        - "{{ docker_compose_dir }}/dashboards"
+
+  tags: [ never, metrics_clean ]
+
+- name: Install VictoriaMetrics
+  block:
+    - name: Create compose directory
+      ansible.builtin.file:
+        state: directory
+        name: "{{ docker_compose_dir }}"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0666
+
+    - name: Create persistent data directories
+      ansible.builtin.file:
+        state: directory
+        name: "{{ item }}"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0777
+      with_items:
+        - "{{ persistent_data_path }}/vmagentdata"
+        - "{{ persistent_data_path }}/vmdata"
+        - "{{ persistent_data_path }}/grafanadata"
+        - "{{ persistent_data_path }}/strgdata-1"
+        - "{{ persistent_data_path }}/strgdata-2"
+        - "{{ docker_compose_dir }}/provisioning/datasources"
+        - "{{ docker_compose_dir }}/dashboards"
+        - "{{ persistent_data_path }}/opensearch"
+
+    - name: Copy metrics configuration
+      ansible.posix.synchronize:
+        src: "vm_files/"
+        dest: "{{ docker_compose_dir }}"
+        rsync_path: sudo rsync
+        recursive: true
+
+    - name: Extract zip archives
+      ansible.builtin.unarchive:
+        src: "{{ docker_compose_dir }}/plugins/grafana-opensearch-datasource-2.13.1.linux_amd64.zip"
+        dest: "{{ docker_compose_dir }}/plugins"
+        remote_src: yes
+
+    - name: Create datasource config
+      ansible.builtin.template:
+        src: "datasource.yml.j2"
+        dest: "{{ docker_compose_dir }}/provisioning/datasources/datasource.yml"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0666
+
+    - name: Create docker-compose configs from templates
+      ansible.builtin.template:
+        src: "docker-compose.j2"
+        dest: "{{ docker_compose_dir }}/docker-compose.yml"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0666
+      vars:
+        xms_size: "{{ (ansible_memtotal_mb * 0.5) | int }}"
+        xmx_size: "{{ (ansible_memtotal_mb * 0.5) | int }}"
+
+    - name: Start VictoriaMetrics
+      community.docker.docker_compose:
+        project_src: "{{ docker_compose_dir }}"
+        files:
+          - "docker-compose.yml"
+  tags: [ metrics_install ]
+
+- name: Install Grafana Dashboards
+  block:
+    - name: Create dashboards for grafana
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "{{ docker_compose_dir }}/{{ item }}"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0666
+      with_items:
+        - "dashboards/project-server-state.json"
+        - "dashboards/project-service-logs.json"
+        - "dashboards/project-system-work.json"
+        - "dashboards/jvm-dashboard.json"
+    - name: Create alerts for grafana
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "{{ docker_compose_dir }}/{{ item }}"
+        owner: "{{ docker_compose_owner }}"
+        group: "{{ docker_compose_group }}"
+        mode: 0666
+      with_items:
+        - "alerts/alerts.yml"
+        - "alerts/alerts-health.yml"
+        - "alerts/alerts-vmagent.yml"
+        - "alerts/alerts-vmalert.yml"
+
+  tags: [ metrics_install, dashboards_install ]
+
+- name: Init opensearch indices
+  block:
+    - name: Check index exists
+      uri:
+        url: "http://{{ ansible_host }}:{{ opensearch_rest_port }}/_index_template/app_log"
+        status_code: [200, 404]
+      register: existing_result
+
+    - name: Stop data-prepper
+      shell: |
+        docker stop data-prepper
+      when: existing_result.status == 404
+    - name: Create app_log_rollover_policy
+      uri:
+        url: "http://{{ ansible_host }}:{{ opensearch_rest_port }}/_plugins/_ism/policies/app_log_rollover_policy"
+        method: PUT
+        body_format: json
+        body: >
+          {
+            "policy": {
+              "description": "App log rollover policy.",
+              "default_state": "rollover",
+              "states": [
+                {
+                  "name": "rollover",
+                  "actions": [
+                    {
+                      "retry": {
+                        "count": 3,
+                        "backoff": "exponential",
+                        "delay": "1m"
+                      },
+                      "rollover": {
+                        "min_size": "10gb",
+                        "min_index_age": "1d"
+                      }
+                    }
+                  ],
+                  "transitions": [
+                    {
+                      "state_name": "delete",
+                      "conditions": {
+                        "min_index_age": "30d"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "delete",
+                  "actions": [
+                    {
+                      "retry": {
+                        "count": 3,
+                        "backoff": "exponential",
+                        "delay": "1m"
+                      },
+                      "delete": {}
+                    }
+                  ],
+                  "transitions": []
+                }
+              ],
+              "ism_template": {
+                "index_patterns": ["app_log*"],
+                "priority": 1
+              }
+            }
+          }
+        status_code: [201, 409]
+      when: existing_result.status == 404
+    - name: Create raw-span-policy
+      uri:
+        url: "http://{{ ansible_host }}:{{ opensearch_rest_port }}/_plugins/_ism/policies/raw-span-policy"
+        method: PUT
+        body_format: json
+        body: >
+          {
+            "policy": {
+              "description": "Managing raw spans for trace analytics",
+              "default_state": "current_write_index",
+              "states": [
+                {
+                  "name": "current_write_index",
+                  "actions": [
+                    {
+                      "retry": {
+                        "count": 3,
+                        "backoff": "exponential",
+                        "delay": "1m"
+                      },
+                      "rollover": {
+                        "min_size": "10gb",
+                        "min_index_age": "1d"
+                      }
+                    }
+                  ],
+                  "transitions": [
+                    {
+                      "state_name": "delete",
+                      "conditions": {
+                        "min_index_age": "10d"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "delete",
+                  "actions": [
+                    {
+                      "retry": {
+                        "count": 3,
+                        "backoff": "exponential",
+                        "delay": "1m"
+                      },
+                      "delete": { }
+                    }
+                  ],
+                  "transitions": [ ]
+                }
+              ],
+              "ism_template": {
+                "index_patterns": [ "otel-v1-apm-span-*" ],
+                "priority": 1
+              }
+            }
+          }
+        status_code: [201, 409]
+      when: existing_result.status == 404
+    - name: Delete unwanted index app_log
+      uri:
+        url: "http://{{ ansible_host }}:{{ opensearch_rest_port }}/app_log"
+        method: DELETE
+        status_code: [200, 404]
+      when: existing_result.status == 404
+    - name: Create index_template app_log
+      uri:
+        url: "http://{{ ansible_host }}:{{ opensearch_rest_port }}/_index_template/app_log"
+        method: PUT
+        body_format: json
+        body: >
+          {
+            "index_patterns": [ "app_log*" ],
+            "template": {
+              "settings": {
+                "plugins.index_state_management.rollover_alias": "app_log"
+              }
+            }
+          }
+        status_code: 200
+      when: existing_result.status == 404
+    - name: Create index app_log
+      uri:
+        url: "http://{{ ansible_host }}:{{ opensearch_rest_port }}/app_log-000001"
+        method: PUT
+        body_format: json
+        body: >
+          {
+            "aliases": {
+              "app_log": {
+                "is_write_index": true
+              }
+            }
+          }
+        status_code: [200, 400]
+      when: existing_result.status == 404
+    - name: Start data-prepper
+      shell: |
+        docker start data-prepper
+      when: existing_result.status == 404
+  tags: [ init_opensearch_indices ]

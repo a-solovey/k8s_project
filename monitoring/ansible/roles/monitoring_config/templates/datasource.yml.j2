@@ -1,0 +1,34 @@
+apiVersion: 1
+
+datasources:
+  - name: VictoriaMetrics - cluster
+    type: prometheus
+    access: proxy
+    url: http://{{ ansible_host }}:8481/select/0/prometheus
+    isDefault: true
+
+  - name: OpenSearch
+    type: grafana-opensearch-datasource
+    access: proxy
+    url: http://{{ ansible_host }}:9200
+    jsonData:
+      database: app_log
+      flavor: opensearch
+      logLevelField: ""
+      logMessageField: ""
+      maxConcurrentShardRequests: 5
+      pplEnabled: true
+      timeField: time
+      version: 2.9.0
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: {{ database_url }}
+    user: {{ database_user }}
+    database: {{ database_name }}
+    jsonData:
+      postgresVersion: 1500
+      sslmode: disable
+    secureJsonData:
+      password: {{ database_password }}

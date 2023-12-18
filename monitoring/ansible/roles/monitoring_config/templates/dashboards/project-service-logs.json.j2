@@ -1,0 +1,576 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 2,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "P9744FCCEAAFBD98F"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.2.7",
+      "targets": [
+        {
+          "alias": "",
+          "bucketAggs": [
+            {
+              "field": "time",
+              "id": "1",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "P9744FCCEAAFBD98F"
+          },
+          "editorMode": "code",
+          "expr": "",
+          "format": "table",
+          "instant": true,
+          "key": "Q-2e72ea21-ecaa-4776-bbee-6a9e9a3ce08d-0",
+          "legendFormat": "__auto",
+          "luceneQueryType": "Metric",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "query": "${query_condition:raw}",
+          "queryType": "lucene",
+          "range": true,
+          "refId": "A",
+          "timeField": "time"
+        }
+      ],
+      "transformations": [],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "P9744FCCEAAFBD98F"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resource.attributes.k8s@deployment@name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 267
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resource.attributes.k8s@job@name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 282
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resource.attributes.k8s@container@name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 315
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resource.attributes.k8s@node@name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 229
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Сервис"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 129
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Нода"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Под"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 132
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 158
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "log.attributes.exception@stacktrace"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 88
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "log.attributes.exception@type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 87
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Уровень логирования"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 73
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 1,
+      "options": {
+        "footer": {
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "9.2.7",
+      "targets": [
+        {
+          "alias": "",
+          "bucketAggs": [],
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "P9744FCCEAAFBD98F"
+          },
+          "editorMode": "code",
+          "expr": "",
+          "format": "table",
+          "instant": true,
+          "key": "Q-2e72ea21-ecaa-4776-bbee-6a9e9a3ce08d-0",
+          "legendFormat": "__auto",
+          "luceneQueryType": "Metric",
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "order": "desc",
+                "size": "500",
+                "useTimeRange": true
+              },
+              "type": "raw_data"
+            }
+          ],
+          "query": "${query_condition:raw}",
+          "queryType": "lucene",
+          "range": true,
+          "refId": "A",
+          "timeField": "time"
+        }
+      ],
+      "title": "Logs",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "time",
+                "body",
+                "log.attributes.exception@stacktrace",
+                "resource.attributes.k8s@container@name",
+                "resource.attributes.k8s@node@name",
+                "resource.attributes.k8s@pod@name",
+                "log.attributes.severity_name"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "body": 3,
+              "log.attributes.exception@stacktrace": 4,
+              "log.attributes.severity_name": 2,
+              "resource.attributes.k8s@container@name": 1,
+              "resource.attributes.k8s@node@name": 5,
+              "resource.attributes.k8s@pod@name": 6,
+              "time": 0
+            },
+            "renameByName": {
+              "body": "Сообщение",
+              "log.attributes.exception@stacktrace": "Stack trace",
+              "log.attributes.severity_name": "Уровень логирования",
+              "resource.attributes.k8s@container@name": "Сервис",
+              "resource.attributes.k8s@node@name": "Нода",
+              "resource.attributes.k8s@pod@name": "Под"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allValue": "_all_",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PAF93674D0B4E9963"
+        },
+        "definition": "kube_pod_container_info{namespace=\"{{ kubernetes_namespace }}\"}",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "service_name",
+        "options": [],
+        "query": {
+          "query": "kube_pod_container_info{namespace=\"{{ kubernetes_namespace }}\"}",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "/.*container=\"(?<text>[a-zA-Z0-9-_]+).*/",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "allValue": "_all_",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PAF93674D0B4E9963"
+        },
+        "definition": "kube_pod_container_info{container=\"$service_name\"}",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "pod_name",
+        "options": [],
+        "query": {
+          "query": "kube_pod_container_info{container=\"$service_name\"}",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "/.*pod=\"(?<text>[a-zA-Z0-9-_]+).*/",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "allValue": "_all_",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "log_level",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "error",
+            "value": "error"
+          },
+          {
+            "selected": false,
+            "text": "warn",
+            "value": "warn"
+          },
+          {
+            "selected": false,
+            "text": "info",
+            "value": "info"
+          }
+        ],
+        "query": "error,warn,info",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        },
+        "hide": 0,
+        "name": "query",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "PCC52D03280B7034C"
+        },
+        "definition": "select replace(concat('(', array_to_string(array_agg(query_parts.part), ') AND ('), ')'), '()', '') from (\nselect case\n           when $$${service_name:csv}$$ = '_all_' then null\n           else concat('serviceName:(\"', array_to_string(string_to_array($$${service_name:csv}$$, ','), '\" OR \"'), '\")')\n           end as part\nunion all\nselect case\n           when $$${pod_name:csv}$$ = '_all_' then null\n           else concat('resource.attributes.k8s@pod@name:(\"', array_to_string(string_to_array($$${pod_name:csv}$$, ','), '\" OR \"'), '\")')\n           end as part\nunion all\nselect case\n           when $$${log_level:csv}$$ = '_all_' then null\n           else concat('log.attributes.severity_name:(\"',\n                array_to_string(\n                    string_to_array($$${log_level:csv}$$, ','),\n                    '\" OR \"'\n                ),\n                '\")'\n               )\n           end as part\nunion all\nselect case\n           when $$${query:raw}$$ = '' then null\n           else $$${query:raw}$$\n           end as part\n    ) as query_parts\nwhere part is not null",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "query_condition",
+        "options": [],
+        "query": "select replace(concat('(', array_to_string(array_agg(query_parts.part), ') AND ('), ')'), '()', '') from (\nselect case\n           when $$${service_name:csv}$$ = '_all_' then null\n           else concat('serviceName:(\"', array_to_string(string_to_array($$${service_name:csv}$$, ','), '\" OR \"'), '\")')\n           end as part\nunion all\nselect case\n           when $$${pod_name:csv}$$ = '_all_' then null\n           else concat('resource.attributes.k8s@pod@name:(\"', array_to_string(string_to_array($$${pod_name:csv}$$, ','), '\" OR \"'), '\")')\n           end as part\nunion all\nselect case\n           when $$${log_level:csv}$$ = '_all_' then null\n           else concat('log.attributes.severity_name:(\"',\n                array_to_string(\n                    string_to_array($$${log_level:csv}$$, ','),\n                    '\" OR \"'\n                ),\n                '\")'\n               )\n           end as part\nunion all\nselect case\n           when $$${query:raw}$$ = '' then null\n           else $$${query:raw}$$\n           end as part\n    ) as query_parts\nwhere part is not null",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Логи сервисов",
+  "uid": "zBHuOe6Vk",
+  "version": 16,
+  "weekStart": ""
+}

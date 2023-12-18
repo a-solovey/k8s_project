@@ -1,0 +1,180 @@
+version: "3.5"
+services:
+  vmagent:
+    container_name: vmagent
+    image: {{ docker_registry }}/victoriametrics/vmagent:{{ metrics_image_tag }}
+    depends_on:
+      - "vminsert"
+    ports:
+      - {{ vmagent_port }}:{{ vmagent_port }}
+    volumes:
+      - {{ persistent_data_path }}/vmagentdata:/vmagentdata
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--promscrape.config=/etc/prometheus/prometheus.yml"
+      - "--remoteWrite.url=http://{{ ansible_host }}:{{ vminsert_port }}/insert/0/prometheus/"
+    networks:
+      - vm_net
+    restart: always
+########
+  vmstorage-1:
+    container_name: vmstorage-1
+    image: {{ docker_registry }}/victoriametrics/vmstorage:{{ vmstorage_image_tag }}
+    ports:
+      - 8482:8482
+      - {{ vmstorage_port }}:{{ vmstorage_port }}
+      - 8401:8401
+    volumes:
+      - {{ persistent_data_path }}/strgdata-1:/storage
+    command:
+      - '--storageDataPath=/storage'
+      - '--retentionPeriod={{ vmstorage_retention_period }}'
+    restart: always
+  vminsert:
+    container_name: vminsert
+    image: {{ docker_registry }}/victoriametrics/vminsert:{{ vminsert_image_tag }}
+    depends_on:
+      - "vmstorage-1"
+      # - "vmstorage-2"
+    command:
+      - '-maxConcurrentInserts=16'
+      - '--storageNode={{ ansible_host }}:{{ vmstorage_port }}'
+      # - '--storageNode=vmstorage-2:{{ vmstorage_port }}'
+    ports:
+      - {{ vminsert_port }}:{{ vminsert_port }}
+    restart: always
+  vmselect:
+    container_name: vmselect
+    image: {{ docker_registry }}/victoriametrics/vmselect:{{ vmselect_image_tag }}
+    depends_on:
+      - "vmstorage-1"
+      # - "vmstorage-2"
+    command:
+      - '--storageNode={{ ansible_host }}:8401'
+      # - '--storageNode=vmstorage-2:8401'
+      - '--vmalert.proxyURL=http://{{ ansible_host }}:{{ vmalert_port }}'
+    ports:
+      - {{ vmselect_port }}:{{ vmselect_port }}
+    restart: always
+  grafana:
+    container_name: grafana
+    image: {{ docker_registry }}/grafana/grafana:{{ grafana_image_tag }}
+    depends_on:
+      - "vmselect"
+    ports:
+      - {{ grafana_port }}:{{ grafana_port }}
+    volumes:
+      - {{ persistent_data_path }}/grafanadata:/var/lib/grafana
+      - ./provisioning/:/etc/grafana/provisioning/
+      - ./plugins/:/var/lib/grafana/plugins/
+      - ./dashboards/:/var/lib/grafana/dashboards/
+    networks:
+      - vm_net
+    restart: always
+    environment:
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
+#      GF_INSTALL_PLUGINS: 'grafana-opensearch-datasource'
+  vmalert:
+    container_name: vmalert
+    image: {{ docker_registry }}/victoriametrics/vmalert:{{ metrics_image_tag }}
+    depends_on:
+      - "vmselect"
+    ports:
+      - {{ vmalert_port }}:{{ vmalert_port }}
+    volumes:
+      - ./alerts:/etc/alerts
+    command:
+      - '--datasource.url=http://{{ ansible_host }}:{{ vmselect_port }}/select/0/prometheus'
+      - '--remoteRead.url=http://{{ ansible_host }}:{{ vmselect_port }}/select/0/prometheus'
+      - '--remoteWrite.url=http://{{ ansible_host }}:{{ vminsert_port }}/insert/0/prometheus'
+      - '--notifier.url=http://{{ ansible_host }}:{{ alertmanager_port }}/'
+      - "--rule=/etc/alerts/*.yml"
+      - "--external.url=http://127.0.0.1:{{ grafana_port }}" #grafana outside container
+      - '--external.alert.source=explore?orgId=1&left=["now-1h","now","VictoriaMetrics",{"expr":\{\{$$expr|jsonEscape|queryEscape\}\} },{"mode":"Metrics"},{"ui":[true,true,true,"none"]}]'
+    networks:
+      - vm_net
+    restart: always
+  alertmanager:
+    container_name: alertmanager
+    image: {{ docker_registry }}/prom/alertmanager:{{ alertmanager_image_tag }}
+    volumes:
+      - ./alertmanager.yml:/config/alertmanager.yml
+      - ./templates:/config/templates
+    command:
+      - "--config.file=/config/alertmanager.yml"
+#      - "--log.level=debug"
+    ports:
+      - {{ alertmanager_port }}:{{ alertmanager_port }}
+    networks:
+      - vm_net
+    restart: always
+
+  opensearch:
+    image: {{ docker_registry }}/opensearchproject/opensearch:{{ opensearch_image_tag }}
+    container_name: opensearch-node
+    environment:
+      - cluster.name=opensearch-cluster # Name the cluster
+      - discovery.type=single-node
+      - node.name=opensearch-node1 # Name the node that will run in this container
+      #- discovery.seed_hosts=opensearch-node1,opensearch-node2 # Nodes to look for when discovering the cluster
+      #- cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2 # Nodes eligibile to serve as cluster manager
+      - bootstrap.memory_lock=true # Disable JVM heap memory swapping
+      - "OPENSEARCH_JAVA_OPTS=-Xms{{ xms_size }}m -Xmx{{ xmx_size }}m" # Set min and max JVM heap sizes to at least 50% of system RAM
+      - "DISABLE_INSTALL_DEMO_CONFIG=true" # Prevents execution of bundled demo script which installs demo certificates and security configurations to OpenSearch
+      - "DISABLE_SECURITY_PLUGIN=true" # Disables security plugin
+    ulimits:
+      memlock:
+        soft: -1 # Set memlock to unlimited (no soft or hard limit)
+        hard: -1
+      nofile:
+        soft: 65536 # Maximum number of open files for the opensearch user - set to at least 65536
+        hard: 65536
+    volumes:
+      - {{ persistent_data_path }}/opensearch:/usr/share/opensearch/data # Creates volume called opensearch-data1 and mounts it to the container
+    ports:
+      - {{ opensearch_rest_port }}:{{ opensearch_rest_port }} # REST API
+      - {{ opensearch_perf_port }} # Performance Analyzer
+    networks:
+      - vm_net # All of the containers will join the same Docker bridge network
+    restart: always
+  opensearch-dashboards:
+    image: {{ docker_registry }}/opensearchproject/opensearch-dashboards:{{ opensearch_image_tag }}
+    container_name: opensearch-dashboards
+    depends_on:
+      - "opensearch"
+    ports:
+      - {{ opensearch_dashboard_port }}:5601
+    expose:
+      - "5601" # Expose port 5601 for web access to OpenSearch Dashboards
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://{{ ansible_host }}:{{ opensearch_rest_port }}"]'
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
+    networks:
+      - vm_net
+    restart: always
+  data-prepper:
+    container_name: data-prepper
+    image: {{ docker_registry }}/opensearchproject/data-prepper:2.1.1
+    depends_on:
+      - "opensearch"
+    volumes:
+      - ./pipelines.yml:/usr/share/data-prepper/pipelines/pipelines.yaml
+      - ./data-prepper-config.yml:/usr/share/data-prepper/config/data-prepper-config.yaml
+    ports:
+      - "21890:21890"
+      - "21892:21892"
+      - "21894:21894"
+    networks:
+      - vm_net
+    restart: always
+
+networks:
+  vm_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: {{ docker_subnet }}
+          gateway: {{ docker_subnet | ansible.utils.ipaddr('net') | ansible.utils.ipaddr('1') | ansible.utils.ipaddr('address') }}

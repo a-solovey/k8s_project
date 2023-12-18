@@ -1,0 +1,351 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-conf
+  namespace: opentelemetry
+  labels:
+    app: opentelemetry
+    component: otel-collector-conf
+data:
+  otel-collector-config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: 'otel-ksm'
+            static_configs:
+              - targets: [ 'kube-state-metrics.kube-system.svc.cluster.local:8080' ]
+          - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            job_name: 'otel-cadvisor'
+            kubernetes_sd_configs:
+              - role: node
+            relabel_configs:
+              - replacement: kubernetes.default.svc.cluster.local:443
+                target_label: __address__
+              - regex: (.+)
+                replacement: /api/v1/nodes/$${1}/proxy/metrics/cadvisor
+                source_labels:
+                  - __meta_kubernetes_node_name
+                target_label: __metrics_path__
+            scheme: https
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              insecure_skip_verify: false
+              server_name: kubernetes
+          - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            job_name: 'otel-kubelet'
+            kubernetes_sd_configs:
+              - role: node
+            relabel_configs:
+              - replacement: kubernetes.default.svc.cluster.local:443
+                target_label: __address__
+              - regex: (.+)
+                replacement: /api/v1/nodes/$${1}/proxy/metrics
+                source_labels:
+                  - __meta_kubernetes_node_name
+                target_label: __metrics_path__
+            scheme: https
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              insecure_skip_verify: false
+              server_name: kubernetes
+    
+    exporters:
+      otlp/log:
+        endpoint: {{ .Values.env.dataPrepper.host }}:{{ .Values.env.dataPrepper.port }}
+        tls:
+          insecure: true
+      prometheusremotewrite:
+        endpoint: "http://{{ .Values.env.vmagent.host }}:{{ .Values.env.vmagent.port }}/api/v1/write"
+        timeout: 120s
+        resource_to_telemetry_conversion:
+          enabled: true
+      logging:
+        verbosity: detailed
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        resource_to_telemetry_conversion:
+          enabled: true
+    
+    processors:
+      k8sattributes:
+      transform:
+        log_statements:
+          - context: log
+            statements:
+              - set(attributes["severity_name"], "error") where severity_number == 17
+              - set(attributes["severity_name"], "warn") where severity_number == 13
+              - set(attributes["severity_name"], "info") where severity_number == 9
+              - set(attributes["severity_name"], "debug") where severity_number == 5
+      resource:
+        attributes:
+          - key: container.id
+            action: delete
+          - key: container.image.name
+            action: delete
+          - key: container.image.tag
+            action: delete
+          - key: host.arch
+            action: delete
+          - key: k8s.pod.ip
+            action: delete
+          - key: k8s.pod_start_time
+            action: delete
+          - key: k8s.pod.uid
+            action: delete
+          - key: k8s.replicaset.name
+            action: delete
+          - key: os.description
+            action: delete
+          - key: os.type
+            action: delete
+          - pattern: process.*
+            action: delete
+          - key: service.version
+            action: delete
+          - pattern: telemetry.*
+            action: delete
+    
+    service:
+      pipelines:
+        logs:
+          receivers: [ otlp ]
+          processors: [ k8sattributes, transform, resource ]
+          exporters: [ otlp/log ]
+        metrics:
+          receivers: [ otlp, prometheus ]
+          processors: [ k8sattributes, resource ]
+          exporters: [ prometheusremotewrite, prometheus ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+  labels:
+    app: opentelemetry
+    component: otel-collector
+spec:
+  ports:
+    - name: otlp-grpc # Default endpoint for OpenTelemetry gRPC receiver.
+      port: 4317
+      protocol: TCP
+      targetPort: 4317
+    - name: otlp-http # Default endpoint for OpenTelemetry HTTP receiver.
+      port: 4318
+      protocol: TCP
+      targetPort: 4318
+    - name: metrics # Default endpoint for querying metrics.
+      port: 8889
+  selector:
+    component: otel-collector
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+  labels:
+    app: opentelemetry
+    component: otel-collector
+spec:
+  selector:
+    matchLabels:
+      app: opentelemetry
+      component: otel-collector
+  minReadySeconds: 5
+  progressDeadlineSeconds: 120
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: opentelemetry
+        component: otel-collector
+    spec:
+      serviceAccountName: otel-collector
+      containers:
+        - command:
+            - "/otelcol-contrib"
+            - "--config=/conf/otel-collector-config.yaml"
+#  todo при апдейте на 85 версию, перестают собираться метрики. начинает работать, если понизить версию до 82
+          image: {{ .Values.image.registry }}/otel/opentelemetry-collector-contrib:0.82.0
+          name: otel-collector
+          resources:
+            limits:
+              cpu: 1
+              memory: 2Gi
+            requests:
+              cpu: 200m
+              memory: 400Mi
+          ports:
+            - containerPort: 4317 # Default endpoint for OpenTelemetry receiver.
+            - containerPort: 8889  # Default endpoint for querying metrics.
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: otel-collector-config-vol
+              mountPath: /conf
+      volumes:
+        - configMap:
+            name: otel-collector-conf
+            items:
+              - key: otel-collector-config
+                path: otel-collector-config.yaml
+          name: otel-collector-config-vol
+
+#--- настройки демонсета для работы k8sattributes
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "pods", "nodes", "nodes/proxy", "services", "endpoints", "events", "namespaces" ]
+    verbs: [ "get", "watch", "list" ]
+  - apiGroups: [ "apps" ]
+    resources: [ "replicasets" ]
+    verbs: [ "get", "list", "watch" ]
+  - apiGroups: [ "extensions" ]
+    resources: [ "replicasets" ]
+    verbs: [ "get", "list", "watch" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+  namespace: opentelemetry
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: opentelemetry
+roleRef:
+  kind: ClusterRole
+  name: otel-collector
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-agent-conf
+  namespace: opentelemetry
+  labels:
+    app: opentelemetry
+    component: otel-agent-conf
+data:
+  otel-agent-config: |
+    receivers:
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: 'otel-node-exporter'
+            static_configs:
+              - targets: [ 'kubernetes.default.svc:9100' ]
+    
+    exporters:
+      prometheusremotewrite:
+        endpoint: "http://{{ .Values.env.vmagent.host }}:{{ .Values.env.vmagent.port }}/api/v1/write"
+        timeout: 120s
+        resource_to_telemetry_conversion:
+          enabled: true
+      logging:
+        verbosity: detailed
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        resource_to_telemetry_conversion:
+          enabled: true
+    
+    processors:
+      k8sattributes:
+      resource:
+        attributes:
+        - key: k8s.cluster.name
+          action: insert
+          value: ${env:NODENAME}
+        - key: http.scheme
+          action: delete
+        - pattern: net.host.*
+          action: delete
+        - pattern: service.*
+          action: delete
+    service:
+      pipelines:
+        metrics:
+          receivers: [ prometheus ]
+          processors: [ resource, k8sattributes ]
+          exporters: [ prometheusremotewrite, prometheus ]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector-agent
+  namespace: opentelemetry
+  labels:
+    app: opentelemetry
+    component: otel-collector-agent
+spec:
+  selector:
+    matchLabels:
+      app: opentelemetry
+      component: otel-collector-agent
+  template:
+    metadata:
+      labels:
+        app: opentelemetry
+        component: otel-collector-agent
+    spec:
+      serviceAccountName: otel-collector
+      containers:
+        - command:
+            - "/otelcol-contrib"
+            - "--config=/conf/otel-agent-config.yaml"
+#  todo при апдейте на 85 версию, перестают собираться метрики. начинает работать, если понизить версию до 82
+          image: {{ .Values.image.registry }}/otel/opentelemetry-collector-contrib:0.82.0
+          name: otel-collector-agent
+          resources:
+            limits:
+              cpu: 500m
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 4317 # Default OpenTelemetry receiver port.
+            - containerPort: 8889  # Metrics.
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: otel-agent-config-vol
+              mountPath: /conf
+      volumes:
+        - configMap:
+            name: otel-agent-conf
+            items:
+              - key: otel-agent-config
+                path: otel-agent-config.yaml
+          name: otel-agent-config-vol
+---

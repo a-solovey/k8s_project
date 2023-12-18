@@ -1,0 +1,38 @@
+{
+  "panel_height": 4,
+  "panel_width": 3,
+  "start_y": 1,
+  "rows": [
+    {
+      "has_row": false,
+      "padding": 9,
+      "panels": [
+        {
+          "title": "Project-frontend",
+          "deployment": "project-front"
+        }
+        ]
+    },
+    {
+      "has_row": false,
+      "padding": 15,
+      "panels": [
+        {
+          "title": "Config-server",
+          "deployment": "config-server"
+        }
+      ]
+    },
+    {
+      "has_row": true,
+      "row_title": "API",
+      "padding": 0,
+      "panels": [
+        {
+          "title": "Project-backend",
+          "deployment": "project-back"
+        }
+       ]
+    }
+  ]
+}

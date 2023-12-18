@@ -1,0 +1,6 @@
+apiVersion: v2
+name: monitoring-collector
+description: monitoring-collector
+version: 1.0.0
+type: application
+appVersion: 1.0.0

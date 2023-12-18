@@ -1,0 +1,34 @@
+# File contains default list of alerts for VM components.
+# The alerts below are just recommendations and may require some updates
+# and threshold calibration according to every specific setup.
+groups:
+  - name: vm-health
+    # note the `job` filter and update accordingly to your setup
+    rules:
+      - alert: TooManyRestarts
+        expr: changes(process_start_time_seconds{job=~"vmselect|vminsert|vmstorage|vmagent|vmalert"}[15m]) > 10
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ '{{' }} $labels.job {{ '}}' }} too many restarts (instance {{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "Job {{ '{{' }} $labels.job {{ '}}' }} (instance {{ '{{' }} $labels.instance {{ '}}' }}) has restarted more than twice in the last 15 minutes.
+            It might be crashlooping."
+
+      - alert: ServiceDown
+        expr: up{job=~"vmselect|vminsert|vmstorage|vmagent|vmalert"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ '{{' }} $labels.job {{ '}}' }} is down on {{ '{{' }} $labels.instance {{ '}}' }}"
+          description: "{{ '{{' }} $labels.instance {{ '}}' }} of job {{ '{{' }} $labels.job {{ '}}' }} has been down for more than 2 minutes."
+
+      - alert: TooManyLogs
+        expr: sum(increase(vm_log_messages_total{level="error"}[5m])) by (job, instance) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many logs printed for job \"{{ '{{' }} $labels.job {{ '}}' }}\" ({{ '{{' }} $labels.instance {{ '}}' }})"
+          description: "Logging rate for job \"{{ '{{' }} $labels.job {{ '}}' }}\" ({{ '{{' }} $labels.instance {{ '}}' }}) is {{ '{{' }} $value {{ '}}' }} for last 15m.\n
+         Worth to check logs for specific error messages."

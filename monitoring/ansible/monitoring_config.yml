@@ -1,0 +1,16 @@
+---
+# playbook.yml
+
+- name: Deploy VictoriaMetrics
+  hosts: combined_metrics
+  vars:
+    gvc_system_work_vars: "{{ lookup('file', 'project_system_work_vars.json') | from_json }}"
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Deploy monitoring configs
+      ansible.builtin.include_role:
+        name: monitoring_config
+        tasks_from: "{{ item }}"
+      loop:
+        - main.yml

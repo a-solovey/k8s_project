@@ -1,0 +1,8 @@
+image:
+  registry: nexus.k8s.rzd
+startupapicheck:
+  image:
+    registry: nexus.k8s.rzd
+cainjector:
+  image:
+    registry: nexus.k8s.rzd
